@@ -26,7 +26,7 @@ def get_webs_content(webs: list[dict]):
                 url=web.get("url"),
                 word_count_threshold=1,
                 extraction_strategy=LLMExtractionStrategy(
-                    provider="openai/gpt-4o", api_token=config.OPENAI_API_KEY,
+                    provider="gpt-4", api_token=config.OPENAI_API_KEY,
                     extraction_type="schema",
                     instruction="From the crawled content, extract all mentioned about {content}".format(content=web.get("content"))
                 ),            
