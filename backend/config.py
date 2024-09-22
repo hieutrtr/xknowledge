@@ -19,6 +19,12 @@ class Config:
     # Add any other configuration variables here
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
 
+    AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+    AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+    AZURE_OPENAI_CHAT_MODEL_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_CHAT_MODEL_DEPLOYMENT_NAME")
+    AZURE_OPENAI_EMBEDDING_MODEL_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL_DEPLOYMENT_NAME")
+    OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
+
     @classmethod
     def validate(cls):
         """Validate that all required configuration variables are set."""

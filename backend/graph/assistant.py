@@ -1,20 +1,35 @@
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable, RunnableConfig
-from datetime import datetime
-from graph.state import State
+from langchain_openai import AzureChatOpenAI
+from state import State
 from config import config
-from tools.web import find_web, get_webs_content
+from agents import ToDataCollectorAgent, ToKGBuilderAgent
 
-ASSISTANT_MODEL = config.ASSISTANT_MODEL
+llm = AzureChatOpenAI(
+    azure_deployment=config.AZURE_OPENAI_CHAT_MODEL_DEPLOYMENT_NAME,
+    openai_api_version=config.OPENAI_API_VERSION,
+)
+
+assistant_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        "You are a helpful assistant for building Knowledge Graphs. "
+        "Use the provided tools to guide the user through collecting data and constructing the Knowledge Graph. "
+        "When collecting data or building the graph, be thorough and persistent. "
+        "If a step is unclear, ask for clarification before proceeding."
+        "\nCurrent time: {time}.",
+    ),
+    ("placeholder", "{messages}"),
+])
 
 class Assistant:
-    def __init__(self, runnable: Runnable):
+    def __init__(self, runnable):
         self.runnable = runnable
 
-    def __call__(self, state: State, config: RunnableConfig):
+    def __call__(self, state: State):
         while True:
             result = self.runnable.invoke(state)
+            
+            # If the LLM returns an empty response, re-prompt it
             if not result.tool_calls and (
                 not result.content
                 or isinstance(result.content, list)
@@ -24,24 +39,14 @@ class Assistant:
                 state = {**state, "messages": messages}
             else:
                 break
-        return {"messages": result}
-    
-llm = ChatOpenAI(model=ASSISTANT_MODEL, temperature=0)
+        
+        return {
+            "messages": result
+        }
 
-assistant_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are a helpful data assistant. Your job is search for information around a given topic to build knowledge base for the topic."
-            "Your workflow will be:"
-            "\n1. Search on the internet for web urls and contents. "
-            "\n2. Collect information from each web url into dataset. "
-            "\nThe results from your work are a response to user and a dataset about the topic and user's question."
-        ),
-        ("placeholder", "{messages}"),
-    ]
-).partial(time=datetime.now())
-
-assistant_tools = [find_web, get_webs_content]
-
-assistant_runnable = assistant_prompt | llm.bind_tools(assistant_tools)
+assistant_runnable = assistant_prompt | llm.bind_tools(
+   [
+        ToDataCollectorAgent,
+        ToKGBuilderAgent,
+]
+)
